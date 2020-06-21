@@ -1,6 +1,6 @@
 ## Dictionary Scrapper
 
-**```diff Run the command below ```** 
+**``` Run the command below ```** 
 
 `$ python ws_with_syn.py  read.txt output.txt`
 
