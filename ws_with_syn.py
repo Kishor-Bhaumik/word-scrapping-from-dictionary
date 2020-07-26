@@ -137,7 +137,7 @@ percent_count_on=file_len//animlen  # 333 % 10 = 33
 i=0
 reminder= file_len%animlen
 
-c=1
+c=0
 for p,word in enumerate(f,1):
     #print(p,word)
     ids,soup = getIDS(word.lower())
@@ -147,11 +147,14 @@ for p,word in enumerate(f,1):
   
     else:
 #    print(ids)
+        c+=1
         for ID in ids:
             try :
                 writeAll(str(c),soup,word,ID)
-                c+=1
-            except : mispel.append(word.strip()) 
+            except : 
+                c-=1
+                mispel.append(word.strip()) 
+                break
 
     if p % percent_count_on==0:
         
@@ -203,3 +206,5 @@ filem.close()
 end=time.time() - start_time
 end/=3600
 print("time in hour",end)
+
+
