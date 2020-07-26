@@ -7,4 +7,4 @@
 
 - read.txt contains all words need to be scrapped from oxford dictionary and synonyms dictionary
 - a folder named `list` will be created where output.txt will be written to
-- output.txt  file will contain meaning, example sentences and synonyms for every word
+- output.txt  file will contain meaning form oxford dictionary, example sentences and synonyms (both bangla and english) for every word

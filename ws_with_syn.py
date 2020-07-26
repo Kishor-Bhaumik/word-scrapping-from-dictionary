@@ -5,16 +5,20 @@ import sys , time
 from requests import get
 import os
 from pathlib import Path
-
+import numpy as np
+start_time = time.time()
 special_colored ='css-r5sw71-ItemAnchor etbu2a31'
 common ='css-17d6qyx-WordGridLayoutBox et6tpn80'
 URL2='https://www.thesaurus.com/browse/'
 
+delays = [7, 4, 6, 2, 10,5]
 
 
 def scrap_synonyms(word):
     
     synonyms_list=[]
+#     delay = np.random.choice(delays)
+#     time.sleep(delay)
     response = get(URL2+word)
     soup= BeautifulSoup(response.text, 'html.parser')
     word_container =soup.find_all('a', class_ = special_colored) 
@@ -40,7 +44,7 @@ READ = args.readfile
 
 Path("list").mkdir(parents=True, exist_ok=True)
 outfile='list/'+ args.textfile
-
+missed= 'list/missed_'+args.textfile
 
 ox='https://www.oxfordlearnersdictionaries.com/definition/english/'
 
@@ -48,6 +52,8 @@ filew= open(outfile, 'w')
 
 def getIDS(word): 
         URL = ox+ word.strip() #[:-1]
+        delay = np.random.choice(delays)
+        time.sleep(delay)
         page = requests.get(URL)
         soup = BeautifulSoup(page.content, 'html.parser')
         ids = [tag['id'] for tag in soup.select('li[id]')]
@@ -65,14 +71,45 @@ def get_example(results):
         for v in d2:
             T=v.find('span', class_='x')
             if T is not None:
-            	Tw=T.get_text()
-            	filew.write(Tw+'\n')
+                Tw=T.get_text()
+                filew.write(Tw+'\n')
             else : break
 
 
+def example_sentence(word,results):
+#     delay = np.random.choice(delays)
+#     time.sleep(delay)
+    page = requests.get('https://wordsinasentence.com/'+word.strip()+'-in-a-sentence/')
+    soup = BeautifulSoup(page.content, 'html.parser')
+    if soup.find_all('p')[0].get_text()[:5]=='Oops!' :
+        get_example(results)
+        return 
+    for pera in soup.find_all('p') :
+        if pera.get_text()=='' or pera.get_text()[:11]=='Most Search':break
+        filew.write(pera.get_text()+'\n\n')
+    return 
+        
+        
+def bangla_meaning(word):
+    a='http://www.kitkatwords.com/dictionary/translate/?lang=Bengali&shabd='
+    b='&searched=Search'
+#     delay = np.random.choice(delays)
+#     time.sleep(delay)
+    page=requests.get(a+word+b)
+    soup = BeautifulSoup(page.content ,'html.parser')
+    sf=soup.find('ul', class_ = 'Word-Meaning')
+    if sf: 
+        res=sf.find_all('a')
+        L=len(res)
+        bangla_list=[]
+        if res:
+            for m in res:
+                bangla_list.append(m.get_text())
+        filew.write(str(bangla_list))
         
 def writeAll(idx,soup,word,idd):
     results = soup.find(id=idd) 
+
     meaning = get_meaning(results)
     synonyms = scrap_synonyms(word.lower())
     #print("    ")
@@ -80,13 +117,13 @@ def writeAll(idx,soup,word,idd):
     filew.write("@@@@@@"+'\n')
     filew.write(idx+": "+word.upper() +"meaning :"+meaning+'\n')
     filew.write('\n')
+    bangla_meaning(word)
+    filew.write('\n')
     filew.write("synonyms :"+synonyms+'\n')
     filew.write('\n')
-    get_example(results)
-        
-    
+    #get_example(results)
+    example_sentence(word,results)
        
-        
 file1 = open(READ,"r+")
 mispel=[]
 #if file1.mode == 'r':
@@ -100,33 +137,69 @@ percent_count_on=file_len//animlen  # 333 % 10 = 33
 i=0
 reminder= file_len%animlen
 
+c=1
 for p,word in enumerate(f,1):
+    #print(p,word)
     ids,soup = getIDS(word.lower())
     
     if not ids:
-    	mispel.append(word.strip()) 
+        mispel.append(word.strip()) 
   
     else:
 #    print(ids)
-        for ID in ids: 
-            writeAll(str(p),soup,word,ID)
+        for ID in ids:
+            try :
+                writeAll(str(c),soup,word,ID)
+                c+=1
+            except : mispel.append(word.strip()) 
 
     if p % percent_count_on==0:
-    	if i<animlen-1:
-		    sys.stdout.write("\r" + animation[i % animlen])
-		    sys.stdout.flush()
-		    i+=1
+        
+        if (i<animlen-1):
+    
+            sys.stdout.write("\r" + animation[i % animlen])
+            sys.stdout.flush()
+            i+=1
 
 sys.stdout.write("\r" + animation[i % animlen])
 sys.stdout.flush()
 print("\n")
 
+filem= open(missed, 'w') 
+def example_sentence2(word,c):
+#     delay = np.random.choice(delays)
+#     time.sleep(delay)
+    page = requests.get('https://wordsinasentence.com/'+word.strip()+'-in-a-sentence/')
+    soup = BeautifulSoup(page.content, 'html.parser')
+    if soup.find_all('p')[0].get_text()[:5]=='Oops!' :
+        print(mis , "spelling is incorrect")
+        filem.write(mis)
+        filem.write('\n')        
+        return c
+    
+    filew.write('@@@@@@'+'\n') 
+    filew.write(str(c)+ " " +word+"  meaning :\n")
+    bangla_meaning(word)
+    filew.write('\n') 
+    synonyms = scrap_synonyms(word.lower())
+    filew.write("synonyms :"+synonyms+'\n')
+    filew.write('\n') 
+    for pera in soup.find_all('p') :
+        if pera.get_text()=='' or pera.get_text()[:11]=='Most Search':break
+        filew.write(pera.get_text()+'\n\n')
+    return c+1
+
+
+
 for mis in mispel:
-	print(mis , "spelling is incorrect")
-print("\n")                    
+    c=example_sentence2(mis.strip(),c)
+
+print("\n")
+
 file1.close()
 filew.close()
-    
-   #senses_multiple
+filem.close()
 
-
+end=time.time() - start_time
+end/=3600
+print("time in hour",end)
