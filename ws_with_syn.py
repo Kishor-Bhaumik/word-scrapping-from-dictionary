@@ -75,7 +75,6 @@ def get_example(results):
                 filew.write(Tw+'\n')
             else : break
 
-
 def example_sentence(word,results):
 #     delay = np.random.choice(delays)
 #     time.sleep(delay)
@@ -88,8 +87,9 @@ def example_sentence(word,results):
         if pera.get_text()=='' or pera.get_text()[:11]=='Most Search':break
         filew.write(pera.get_text()+'\n\n')
     return 
-        
-        
+
+                
+      
 def bangla_meaning(word):
     a='http://www.kitkatwords.com/dictionary/translate/?lang=Bengali&shabd='
     b='&searched=Search'
@@ -104,25 +104,38 @@ def bangla_meaning(word):
         bangla_list=[]
         if res:
             for m in res:
-                bangla_list.append(m.get_text())
+                bangla_list.append(m.get_text())      
         filew.write(str(bangla_list))
         
-def writeAll(idx,soup,word,idd):
+def writeAll1(idx,soup,word,idd):
     results = soup.find(id=idd) 
 
     meaning = get_meaning(results)
-    synonyms = scrap_synonyms(word.lower())
+    
     #print("    ")
     filew.write('\n')
     filew.write("@@@@@@"+'\n')
     filew.write(idx+": "+word.upper() +"meaning :"+meaning+'\n')
-    filew.write('\n')
+    
+def writeAll2(idx,soup,word,idd,mc):
+    results = soup.find(id=idd) 
+    meaning = get_meaning(results)
+    if mc is 0:
+        filew.write(idx+": "+word.upper() +"meaning 1:"+meaning+'\n')
+    if mc > 0:
+        filew.write("meaning "+str(mc+1)+":"+meaning+'\n')
+        
+
+def write_only_syn_exm(word,soup,idd):
+    results = soup.find(id=idd) 
     bangla_meaning(word)
+    synonyms = scrap_synonyms(word.lower())
     filew.write('\n')
     filew.write("synonyms :"+synonyms+'\n')
     filew.write('\n')
-    #get_example(results)
-    example_sentence(word,results)
+    example_sentence(word,results)    
+
+
        
 file1 = open(READ,"r+")
 mispel=[]
@@ -148,13 +161,25 @@ for p,word in enumerate(f,1):
     else:
 #    print(ids)
         c+=1
-        for ID in ids:
-            try :
-                writeAll(str(c),soup,word,ID)
-            except : 
-                c-=1
-                mispel.append(word.strip()) 
-                break
+        
+        if len(ids) is 1:
+            for ID in ids:
+                try :
+                    writeAll1(str(c),soup,word,ID)
+                    filew.write('\n')
+                    write_only_syn_exm(word,soup,ID)
+                except : 
+                    c-=1
+                    mispel.append(word.strip()) 
+                    break
+
+        else:
+            filew.write('\n')
+            filew.write("@@@@@@"+'\n')
+            for meaning_count,ID in enumerate(ids):
+                writeAll2(str(c),soup,word,ID,meaning_count)
+            filew.write("\n") 
+            write_only_syn_exm(word,soup,ID)
 
     if p % percent_count_on==0:
         
@@ -193,9 +218,9 @@ def example_sentence2(word,c):
     return c+1
 
 
-
-for mis in mispel:
-    c=example_sentence2(mis.strip(),c)
+if mispel :
+    for mis in mispel:
+        c=example_sentence2(mis.strip(),c)
 
 print("\n")
 
@@ -206,5 +231,3 @@ filem.close()
 end=time.time() - start_time
 end/=3600
 print("time in hour",end)
-
-
